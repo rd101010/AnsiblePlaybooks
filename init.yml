@@ -1,0 +1,16 @@
+---
+#This playbook will retrieve the running configuration from the specified hosts
+- hosts: somehost
+  gather_facts: false
+  connection: network_cli
+  become: yes
+  become_method: enable
+  remote_user: admin
+  tasks:
+    - name: get all config
+      ios_command:
+        commands: show running
+      register: show_run
+
+    - name: dump config to a file
+      local_action: copy content="{{ show_run.stdout[0] }}" dest=/home/poc/files/{{ inventory_hostname }}.original

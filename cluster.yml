@@ -1,0 +1,54 @@
+---
+##### vuln_test_new.yml #######
+# This playbook tests if device is vulnerable to cisco-sa-20170317-cmp
+# "Cisco IOS and IOS XE Software Cluster Management Protocol Remote Code
+# Execution Vulnerability"
+# For IOS devices we check version to find out if its vulnerable.
+# For IOS-XE devices also check if Cluster Management Protocol is configured.
+# To be vulnerable CMP must be enabled & device running affected IOS-XE version.
+#
+- hosts: hostgroup
+  gather_facts: false
+  tasks:
+    - name: Determine OS of device
+      ios_command:
+        commands:
+          - show version
+      register: ios
+
+    - name: Check to see if CMP subsystem is present on the device
+      ios_command:
+        commands:
+          - show subsys class protocol | include ^cmp
+      when: ("IOS-XE" in ios.stdout_lines[0])
+
+    - name: Find out if cluster management protocol is in use
+      ios_command:
+        commands:
+          - show running-config | include ^line vty|transport input
+      register: cmpstatus
+    
+    - local_action: copy content="{{ cmpstatus.stdout_lines[0] }}" dest=/home/poc/files/{{ inventory_hostname }}.result
+
+    - name: Get checksum of created  file
+      stat:
+        path: "~/poc/files/{{ inventory_hostname }}.result"
+      register: result_chksum
+
+    - name: setup facts for created file's checksum
+      set_fact:
+        new_sha1:  "{{ result_chksum.stat.checksum }}"
+
+    - name: Get checksum of reference file
+      stat:
+        path : "~/poc/files/transport.results"
+      register: base_chksum
+
+    - name: setup facts for base file checksum
+      set_fact:
+        base_sha1: "{{ base_chksum.stat.checksum }}"
+
+    - name: check to see if collected info matches configuration standard
+      debug:
+        msg: "VTY Configuration does not match standard, mitigation required"
+      failed_when:  base_sha1 != new_sha1

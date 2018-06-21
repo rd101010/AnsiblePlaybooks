@@ -1,0 +1,23 @@
+---
+# smart_install.yml
+# This playbook will test if device is vulnerable per Smart Install Remote Code
+# Execution Vulnerability
+# https://tools.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-20180328-smi2
+#
+- hosts: hostgroup
+  gather_facts: false
+  tasks:
+    - name: Check to see if smart install client is enabled.
+      ios_command:
+        commands:
+          - show vstack config
+      register: showvstack
+# The following assertion will be true if all 4 conditions are true. 
+    - name: Check to see if smart install is enabled
+      assert:
+        that:
+          - "'Oper Mode: Enabled' in showvstack.stdout_lines"
+          - "'enabled' in showvstack.stdout_lines"
+          - "'Role' in showvstack.stdout_lines"
+          - "'Client' in showvstack.stdout_lines"
+        msg: "Action required, device is vulnerable -> Upgrade IOS"

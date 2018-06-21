@@ -1,0 +1,38 @@
+---
+##### dhcp_relay.yml #######
+# This playbook tests if device is vulnerable to cisco-sa-20180328-dhcpr1
+# https://tools.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-20180328-dhcpr1
+#
+- hosts: hostgroup
+  gather_facts: false
+  tasks:
+    - name: Check to see if device is configured as DHCP relay agent
+      ios_command:
+        commands:
+          - show run | include ip helper-address
+      register: iphelper
+    - fail:
+        msg: "DHCP Relay not enabled, aborting"
+      when: iphelper.stdout != ""
+
+    - name: Check to see if device is inserting option 82 information
+      ios_command:
+        commands:
+          - show running-config | include ip dhcp relay information option
+      register: option82
+    - fail:
+        msg: "Option 82 not present, aborting"
+      when: option82 != ""
+    
+    - name: Check to see if device is encapsulating received option 82 information
+      ios_command:
+        commands:
+          - show running-config | include ip dhcp relay information policy.* encapsulate
+      register: encap
+    - fail:
+        msg: "Option 82 not present, aborting"
+      when: encap != ""
+    - assert:
+        that:
+          - iphelper and option82 and encap
+        msg: "Action required: device is vulnerable"

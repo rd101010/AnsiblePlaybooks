@@ -1,0 +1,27 @@
+---
+- name: demonstration
+  hosts: hostgroup
+  gather_facts: no
+  tasks:
+    - name: Gather facts ios
+      ios_facts:
+      when: ansible_network_os == 'ios'
+      register: iosfacts_out
+    - name: display facts
+      debug:
+        msg: "The hostname is {{ ansible_net_hostname }} and the OS is {{ ansible_net_version }}"
+    - name: write some facts to disk after formatting
+      copy:
+        content: |
+          #jinja2: lstrip_blocks: True
+          IOS device info:
+            {% for host in groups['hostgroup'] %}
+            Hostname: {{ hostvars[host].ansible_net_hostname }}
+            Version: {{ hostvars[host].ansible_net_version }}
+            Model: {{ hostvars[host].ansible_net_model }}
+            Serial: {{ hostvars[host].ansible_net_serialnum }}
+            {% endfor %}
+        dest: /tmp/rtr-facts
+      run_once: yes
+    - name: send facts in json format
+      copy: content="{{ iosfacts_out | to_nice_json }}" dest="/tmp/facts/json/{{inventory_hostname}}_iosfacts.json"

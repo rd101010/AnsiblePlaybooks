@@ -1,0 +1,19 @@
+---
+# This playbook will display version information about the devices it scans
+- hosts: ios
+  connection: local
+  become: yes
+  become_method: enable
+  remote_user: user
+  tasks:
+    - name: get facts
+      ios_facts:
+        gather_subset: all
+    - name: Going to merge change.txt to running-config
+      ios_config:
+        diff_against: running
+        src: change.txt
+      register: test_diff
+    - name: the only config we need to merge is
+      debug: 
+        var: test_diff.updates
