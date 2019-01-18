@@ -1,0 +1,33 @@
+---
+  connection: network_cli
+  gather_facts: false
+  tasks:
+    - name: Get the version & put it an variable
+      ios_command:
+        commands:
+          - "show version | include Cisco IOS Software"
+      register: ios_version
+
+    - name: Display results
+      debug:
+        var: ios_version.stdout
+
+    - name: Find out more about device
+      ios_command:
+        commands:
+          - "show hardware | inc cisco"
+      register: hw_version
+
+    - name: Display hardware results
+      debug:
+        var: hw_version.stdout
+
+#    - name: Display discovered version info
+#      ios_command:
+#        commands:
+#          - "show run | section aaa group"
+#      register: aaa_cfg
+#
+#    - name: Display what we found above
+#      debug:
+#        var: aaa_cfg.stdout
